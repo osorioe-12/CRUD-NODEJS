@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Productos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Lista de Productos</h1>
+    
+    <table id="productos-lista">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>Categoría</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+    
+    <div class="botones">
+        <button onclick="window.location.href='/productos/agrega'">Gestión de Productos</button>
+        <button onclick="window.location.href='/categorias'">Gestión de Categorías</button>
+    </div>
+
+    <script>
+        function cargarProductos() {
+            fetch('/productos')
+                .then(response => response.json())
+                .then(data => {
+                    const listaProductos = document.querySelector('#productos-lista tbody');
+                    listaProductos.innerHTML = '';
+                    data.forEach(producto => {
+                        listaProductos.innerHTML += `
+                            <tr>
+                                <td>${producto.nombre}</td>
+                                <td>${producto.precio}</td>
+                                <td>${producto.categoria}</td>
+                            </tr>
+                        `;
+                    });
+                })
+                .catch(error => console.error('Error al cargar productos:', error));
+        }
+
+        window.onload = cargarProductos;
+    </script>
+</body>
+</html>
