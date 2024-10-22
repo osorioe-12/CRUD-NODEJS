@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Productos</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1, h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            max-width: 800px;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px 15px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        td {
+            color: #333;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        td[contenteditable="true"] {
+            background-color: #f9f9f9;
+            cursor: text;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button:active {
+            background-color: #3e8e41;
+        }
+
+        form {
+            width: 100%;
+            max-width: 800px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 40px;
+        }
+
+        form div {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        button[type="submit"] {
+            background-color: #007BFF;
+            padding: 12px 20px;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+
+        @media (max-width: 768px) {
+            table, form {
+                width: 100%;
+            }
+
+            th, td {
+                font-size: 14px;
+                padding: 10px;
+            }
+
+            button {
+                padding: 8px 10px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Gestión de Productos</h1>
+
+    <form id="agregar-producto-form">
+        <div>
+            <label for="nombre">Nombre del Producto:</label>
+            <input type="text" id="nombre" name="nombre" required>
+        </div>
+        <div>
+            <label for="precio">Precio:</label>
+            <input type="number" id="precio" name="precio" step="0.01" required>
+        </div>
+        <div>
+            <label for="categoria">Categoría:</label>
+            <select id="categoria" name="categoria" required>
+            </select>
+        </div>
+        <button type="submit">Agregar Producto</button>
+    </form>
+
+    <h2>Lista de Productos</h2>
+    <table id="tabla-productos">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>Categoría</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+        async function cargarCategorias(categoriaSeleccionada) {
+            try {
+                const response = await fetch('/categorias/list');
+                const categorias = await response.json();
+                const opciones = categorias.map(categoria => `
+                    <option value="${categoria.id}" ${categoria.nombre === categoriaSeleccionada ? 'selected' : ''}>
+                        ${categoria.nombre}
+                    </option>
+                `).join('');
+                return opciones;
+            } catch (error) {
+                console.error('Error al cargar categorías:', error);
+                return '';
+            }
+        }
+
+        async function cargarProductosGestion() {
+            try {
+                const response = await fetch('/productos');
+                const data = await response.json();
+                const tablaProductos = document.querySelector('#tabla-productos tbody');
+                tablaProductos.innerHTML = '';
+
+                const productosPromises = data.map(async producto => {
+                    const categoriasHtml = await cargarCategorias(producto.categoria);
+                    return `
+                        <tr>
+                            <td contenteditable="true">${producto.nombre}</td>
+                            <td contenteditable="true">${producto.precio}</td>
+                            <td>
+                                <select id="categoria-${producto.id}">
+                                    ${categoriasHtml}
+                                </select>
+                            </td>
+                            <td>
+                                <button onclick="editarProducto(${producto.id})">Guardar</button>
+                                <button onclick="borrarProducto(${producto.id})">Borrar</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                const filasProductos = await Promise.all(productosPromises);
+                tablaProductos.innerHTML = filasProductos.join('');
+            } catch (error) {
+                console.error('Error al cargar productos:', error);
+            }
+        }
+
+        async function agregarProducto() {
+            const nombre = document.getElementById('nombre').value;
+            const precio = document.getElementById('precio').value;
+            const categoriaId = document.getElementById('categoria').value;
+
+            const response = await fetch('/productos', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ nombre, precio, categoria_id: categoriaId })
+            });
+            const data = await response.json();
+            alert(data.message);
+            cargarProductosGestion();
+        }
+
+        document.getElementById('agregar-producto-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            agregarProducto();
+        });
+
+        async function cargarDatosIniciales() {
+            const categoriasHtml = await cargarCategorias();
+            document.getElementById('categoria').innerHTML = categoriasHtml;
+            cargarProductosGestion();
+        }
+
+        window.onload = cargarDatosIniciales;
+    </script>
+</body>
+</html>
