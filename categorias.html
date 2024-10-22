@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Categorías</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        #form-agregar-categoria {
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        thead {
+            background-color: #333;
+            color: white;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        td[contenteditable="true"] {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        button {
+            padding: 8px 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        #form-agregar-categoria input {
+            padding: 10px;
+            margin-right: 5px;
+            width: 200px; /* Ancho del campo de entrada */
+        }
+    </style>
+</head>
+<body>
+    <h1>Gestión de Categorías</h1>
+
+    <div id="form-agregar-categoria">
+        <form onsubmit="agregarCategoria(event)">
+            <input type="text" id="nombre-categoria" placeholder="Nombre de la categoría" required>
+            <button type="submit">Agregar Categoría</button>
+        </form>
+    </div>
+
+    <table id="tabla-categorias">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+        function cargarCategoriasGestion() {
+            fetch('/categorias/list')
+                .then(response => response.json())
+                .then(data => {
+                    const tablaCategorias = document.querySelector('#tabla-categorias tbody');
+                    tablaCategorias.innerHTML = ''; // Limpiar contenido previo
+                    data.forEach(categoria => {
+                        tablaCategorias.innerHTML += `
+                            <tr>
+                                <td contenteditable="true">${categoria.nombre}</td>
+                                <td>
+                                    <button onclick="editarCategoria(${categoria.id})">Guardar</button>
+                                    <button onclick="borrarCategoria(${categoria.id})">Borrar</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                })
+                .catch(error => console.error('Error al cargar categorías:', error));
+        }
+
+        function editarCategoria(id) {
+            const fila = document.querySelector(`button[onclick="editarCategoria(${id})"]`).closest('tr');
+            const nombre = fila.cells[0].innerText;
+
+            fetch(`/categorias/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ nombre })
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message))
+            .catch(error => console.error('Error al editar categoría:', error));
+        }
+
+        function borrarCategoria(id) {
+            fetch(`/categorias/${id}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                cargarCategoriasGestion(); // Volver a cargar la tabla
+            })
+            .catch(error => console.error('Error al borrar categoría:', error));
+        }
+
+        function agregarCategoria(event) {
+            event.preventDefault(); // Evitar el envío del formulario
+
+            const nombre = document.querySelector('#nombre-categoria').value;
+
+            fetch('/categorias', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ nombre })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                cargarCategoriasGestion(); // Recargar la lista de categorías
+                document.querySelector('#form-agregar-categoria').reset(); // Limpiar el formulario
+            })
+            .catch(error => console.error('Error al agregar categoría:', error));
+        }
+
+        window.onload = cargarCategoriasGestion;
+    </script>
+</body>
+</html>
